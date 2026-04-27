@@ -28,8 +28,9 @@ type Module struct {
 }
 
 type Repository struct {
-	URL    string `yaml:"url"`
-	Commit string `yaml:"commit"`
+	URL        string `yaml:"url"`
+	Commit     string `yaml:"commit"`
+	Entrypoint string `yaml:"entrypoint,omitempty"`
 }
 
 func Load(path string) (*File, error) {

@@ -2,22 +2,32 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/btraven00/obmr/internal/benchmark"
 	"github.com/spf13/cobra"
 )
 
 func newListCmd() *cobra.Command {
-	return &cobra.Command{
+	var origin bool
+	c := &cobra.Command{
 		Use:   "list [bench.yaml]",
-		Short: "List modules declared in a benchmark YAML",
+		Short: "List modules (reads local YAML in dev mode; use --origin to read canonical)",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			plan, err := resolvePlan(firstArg(args))
 			if err != nil {
 				return err
 			}
-			f, err := benchmark.Load(plan)
+			source := plan
+			if !origin && firstArg(args) == "" {
+				if local := localYAMLPathFromCanonical(plan); local != "" {
+					if _, err := os.Stat(local); err == nil {
+						source = local
+					}
+				}
+			}
+			f, err := benchmark.Load(source)
 			if err != nil {
 				return err
 			}
@@ -40,6 +50,9 @@ func newListCmd() *cobra.Command {
 					stage := paint(padRight(s.ID, stageW), ansiBold)
 					mod := padRight(m.ID, modW)
 					url := paint(m.Repository.URL, ansiBlue)
+					if m.Repository.Entrypoint != "" {
+						url += paint(":"+m.Repository.Entrypoint, ansiMagenta)
+					}
 					commit := paint(shortHash(m.Repository.Commit), ansiYellow)
 					fmt.Printf("%s  %s  %s  %s\n", stage, mod, commit, url)
 				}
@@ -47,6 +60,8 @@ func newListCmd() *cobra.Command {
 			return nil
 		},
 	}
+	c.Flags().BoolVar(&origin, "origin", false, "read from canonical YAML (upstream URLs + pinned commits)")
+	return c
 }
 
 func padRight(s string, n int) string {
