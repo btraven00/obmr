@@ -40,6 +40,10 @@ module's `repository.url` rewritten to its local path. The benchmark
 runner consumes `bench.local.yaml` during dev. Comments in the
 canonical are preserved.
 
+`dev` also switches every module to its origin default branch
+(`origin/HEAD`, typically `main`). Modules with a dirty working tree are
+skipped with a warning — your in-progress work is never clobbered.
+
 `--fork` additionally runs `gh repo fork --remote=fork --clone=false`
 per module, so each clone has both:
 - `origin` — upstream (read; write if you have access)
@@ -137,7 +141,7 @@ be deleted are switched to the upstream default branch first.
 | `obmr use <plan>` | Set default plan in `./.obmr/config.yaml`. Walks up parents like `.git`. |
 | `obmr list` | Print modules declared in canonical. |
 | `obmr init [--parent DIR]` | Clone modules as siblings; write `.obmr.lock`. |
-| `obmr dev [--fork]` | Write `bench.local.yaml`; with `--fork`, also ensure a `fork` remote per module. |
+| `obmr dev [--fork]` | Write `bench.local.yaml`; switch every clean module to `origin/HEAD`; with `--fork`, also ensure a `fork` remote per module. |
 | `obmr status` | Per-module branch + dirty flag. |
 | `obmr checkout <branch> [-b]` | Concerted checkout. |
 | `obmr pull` | `git pull --ff-only` per module. |
