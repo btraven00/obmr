@@ -1,0 +1,4 @@
+/obmr
+*.local.yaml
+.obmr.lock
+.obmr/
