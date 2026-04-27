@@ -10,21 +10,37 @@ import (
 )
 
 // WriteLocalYAML reads benchYAML, rewrites every modules[].repository.url
-// to the corresponding module's local path, and writes the result to
+// to the corresponding module's local path and modules[].repository.commit
+// to the module's current local branch, and writes the result to
 // <bench>.local.yaml. Comments are preserved.
 func WriteLocalYAML(benchYAML string, lock *Lock) (string, error) {
 	root, err := readYAML(benchYAML)
 	if err != nil {
 		return "", err
 	}
+	benchDir := filepath.Dir(benchYAML)
 	urlToPath := map[string]string{}
+	urlToBranch := map[string]string{}
 	for _, m := range lock.Modules {
 		urlToPath[normRemote(m.Remote)] = m.Path
+		dir := m.Path
+		if !filepath.IsAbs(dir) {
+			dir = filepath.Join(benchDir, m.Path)
+		}
+		if branch, err := Git(dir, "rev-parse", "--abbrev-ref", "HEAD"); err == nil && branch != "HEAD" {
+			urlToBranch[normRemote(m.Remote)] = branch
+		}
 	}
 	walkRepositories(root, func(repo *yaml.Node) {
-		setMapStringValue(repo, "url", func(old string) (string, bool) {
-			p, ok := urlToPath[normRemote(old)]
+		url := repoURL(repo)
+		key := normRemote(url)
+		setMapStringValue(repo, "url", func(_ string) (string, bool) {
+			p, ok := urlToPath[key]
 			return p, ok
+		})
+		setMapStringValue(repo, "commit", func(_ string) (string, bool) {
+			b, ok := urlToBranch[key]
+			return b, ok
 		})
 	})
 	return writeYAML(root, localOutputPath(benchYAML))

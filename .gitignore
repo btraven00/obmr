@@ -2,3 +2,4 @@
 *.local.yaml
 .obmr.lock
 .obmr/
+pixi.lock

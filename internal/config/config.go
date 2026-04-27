@@ -15,12 +15,25 @@ const (
 )
 
 type Config struct {
-	Default Default `yaml:"default"`
+	Default       Default       `yaml:"default"`
+	Omnibenchmark Omnibenchmark `yaml:"omnibenchmark"`
 }
 
 type Default struct {
 	Plan string `yaml:"plan"`
 }
+
+// Omnibenchmark specifies which `omnibenchmark` package `obmr run` invokes.
+// Resolution priority: pr > branch > version > latest pypi.
+type Omnibenchmark struct {
+	Version string `yaml:"version,omitempty"` // e.g. "1.2.3"
+	Branch  string `yaml:"branch,omitempty"`  // git branch on the upstream repo
+	PR      int    `yaml:"pr,omitempty"`      // GitHub PR number on the upstream repo
+}
+
+// UpstreamRepo is the canonical URL used to install `omnibenchmark` from
+// source (when branch or PR is set).
+const UpstreamRepo = "https://github.com/omnibenchmark/omnibenchmark.git"
 
 // Find walks up from start looking for .obmr/config.yaml. Returns the path
 // to the config file, or "" if none found.

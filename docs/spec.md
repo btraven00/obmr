@@ -62,9 +62,18 @@ not touched — branches are a working-tree concept only.
 
 ### 4. Edit and run
 
-Edit code in any of the sibling clones. Run the benchmark against
-`bench.local.yaml`; since it points at paths, whatever you have
-checked out is what runs. Iterate freely.
+Edit code in any of the sibling clones, then:
+
+```sh
+obmr run                  # ob run <plan> --dirty   (dev mode)
+obmr run --prod           # ob run <plan>           (upstream-pinned)
+obmr run -- --threads 8   # pass-through to ob
+```
+
+`run` invokes `omnibenchmark` via `uv tool run`. The version is read
+from config: `omnibenchmark.pr` > `omnibenchmark.branch` >
+`omnibenchmark.version` > latest pypi. Set with
+`obmr config omnibenchmark.branch <name>` (or `.pr <N>`, `.version <X>`).
 
 ### 5. Push
 
@@ -139,6 +148,8 @@ be deleted are switched to the upstream default branch first.
 | Command | Purpose |
 |---|---|
 | `obmr use <plan>` | Set default plan in `./.obmr/config.yaml`. Walks up parents like `.git`. |
+| `obmr config [key] [value]` | Get/set config keys (git-config style). |
+| `obmr run [--prod] [-- ob-args]` | Invoke `ob run` via `uv`; default adds `--dirty` (dev), `--prod` skips it. |
 | `obmr list` | Print modules declared in canonical. |
 | `obmr init [--parent DIR]` | Clone modules as siblings; write `.obmr.lock`. |
 | `obmr dev [--fork]` | Write `bench.local.yaml`; switch every clean module to `origin/HEAD`; with `--fork`, also ensure a `fork` remote per module. |

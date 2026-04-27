@@ -12,6 +12,8 @@ func Root() *cobra.Command {
 	}
 	root.AddCommand(
 		newUseCmd(),
+		newConfigCmd(),
+		newRunCmd(),
 		newListCmd(),
 		newInitCmd(),
 		newStatusCmd(),
@@ -22,6 +24,8 @@ func Root() *cobra.Command {
 		newDevCmd(),
 		newPinCmd(),
 		newTrimCmd(),
+		newFmtCmd(),
+		newPromoteCmd(),
 	)
 	return root
 }

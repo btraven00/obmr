@@ -9,6 +9,36 @@ import (
 	"github.com/btraven00/obmr/internal/workspace"
 )
 
+const (
+	ansiReset   = "\x1b[0m"
+	ansiBold    = "\x1b[1m"
+	ansiDim     = "\x1b[2m"
+	ansiRed     = "\x1b[31m"
+	ansiGreen   = "\x1b[32m"
+	ansiYellow  = "\x1b[33m"
+	ansiBlue    = "\x1b[34m"
+	ansiMagenta = "\x1b[35m"
+	ansiCyan    = "\x1b[36m"
+)
+
+func isTTY() bool {
+	if os.Getenv("NO_COLOR") != "" {
+		return false
+	}
+	st, err := os.Stdout.Stat()
+	if err != nil {
+		return false
+	}
+	return (st.Mode() & os.ModeCharDevice) != 0
+}
+
+func paint(s, code string) string {
+	if !isTTY() {
+		return s
+	}
+	return code + s + ansiReset
+}
+
 // resolvePlan returns the YAML path to use: the explicit arg, or the
 // configured default plan if arg is "".
 func resolvePlan(arg string) (string, error) {
@@ -35,6 +65,18 @@ func firstArg(args []string) string {
 		return ""
 	}
 	return args[0]
+}
+
+// localYAMLPathFromCanonical mirrors workspace.localOutputPath: turns
+// /a/b/foo.yaml into /a/b/foo.local.yaml.
+func localYAMLPathFromCanonical(canonical string) string {
+	dir := filepath.Dir(canonical)
+	base := filepath.Base(canonical)
+	name := base
+	if i := len(base) - len(filepath.Ext(base)); i > 0 {
+		name = base[:i]
+	}
+	return filepath.Join(dir, name+".local"+filepath.Ext(base))
 }
 
 // loadLock resolves the lock file at <bench-dir>/.obmr.lock and returns it

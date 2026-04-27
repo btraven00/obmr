@@ -15,23 +15,27 @@ func newUseCmd() *cobra.Command {
 		Short: "Set the default benchmark plan in ./.obmr/config.yaml",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			plan, err := filepath.Abs(args[0])
+			abs, err := filepath.Abs(args[0])
 			if err != nil {
 				return err
 			}
-			if _, err := os.Stat(plan); err != nil {
-				return fmt.Errorf("plan not found: %s", plan)
+			if _, err := os.Stat(abs); err != nil {
+				return fmt.Errorf("plan not found: %s", abs)
 			}
 			cwd, err := os.Getwd()
 			if err != nil {
 				return err
 			}
-			c := &config.Config{Default: config.Default{Plan: plan}}
+			rel, err := filepath.Rel(cwd, abs)
+			if err != nil {
+				rel = abs
+			}
+			c := &config.Config{Default: config.Default{Plan: rel}}
 			out, err := config.Save(cwd, c)
 			if err != nil {
 				return err
 			}
-			fmt.Printf("wrote %s (default plan = %s)\n", out, plan)
+			fmt.Printf("wrote %s (default plan = %s)\n", out, rel)
 			return nil
 		},
 	}

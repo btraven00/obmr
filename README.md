@@ -18,7 +18,7 @@ cd ~/work
 obmr use ~/lab/some-bench/bench.yaml   # remember the active plan
 obmr init                              # clone modules to ../some-bench-modules
 obmr dev                               # write bench.local.yaml; switch modules to main
-obmr dev --fork                        # also create per-module forks via `gh`
+obmr run                               # uv-invoke `ob run` against bench.local.yaml
 ```
 
 After `use`, the YAML arg can be omitted from every command.
@@ -41,6 +41,8 @@ obmr trim                 # delete merged local branches
 | Command | Purpose |
 |---|---|
 | `obmr use <plan>` | Set default plan in `./.obmr/config.yaml`. |
+| `obmr config [key] [value]` | Get/set config (git-config style). |
+| `obmr run [--prod]` | Invoke `ob run` via `uv`; default adds `--dirty` (dev mode), `--prod` skips it. |
 | `obmr list` | Print modules in the canonical YAML. |
 | `obmr init [--parent DIR]` | Clone modules; write `.obmr.lock`. |
 | `obmr dev [--fork]` | Write `bench.local.yaml`; switch modules to `origin/HEAD`; with `--fork`, ensure a `fork` remote per module. |
@@ -69,4 +71,5 @@ obmr trim                 # delete merged local branches
 ## Requirements
 
 - `git` on PATH.
-- `gh` on PATH and authenticated, only for `obmr dev --fork`.
+- `uv` on PATH for `obmr run`.
+- `gh` on PATH and authenticated for `obmr dev --fork`.

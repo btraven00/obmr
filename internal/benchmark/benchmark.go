@@ -8,11 +8,12 @@ import (
 )
 
 type File struct {
-	Name        string  `yaml:"name"`
-	ID          string  `yaml:"id"`
-	Description string  `yaml:"description"`
-	Version     string  `yaml:"version"`
-	Stages      []Stage `yaml:"stages"`
+	Name            string  `yaml:"name"`
+	ID              string  `yaml:"id"`
+	Description     string  `yaml:"description"`
+	Version         string  `yaml:"version"`
+	SoftwareBackend string  `yaml:"software_backend"`
+	Stages          []Stage `yaml:"stages"`
 }
 
 type Stage struct {
