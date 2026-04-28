@@ -194,6 +194,7 @@ type browseModel struct {
 	cursor  int
 	chosen  string
 	errMsg  string
+	width   int
 }
 
 type fileRow struct {
@@ -248,6 +249,9 @@ func (m browseModel) Init() tea.Cmd { return nil }
 
 func (m browseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		return m, nil
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -367,7 +371,32 @@ func (m browseModel) View() string {
 		rendered[i] = brCrumb.Render(c)
 	}
 	sep := " " + brCrumbS.Render("›") + " "
-	out := brHeader.Render("obmr browse") + "  " + strings.Join(rendered, sep) + "\n\n"
+	sepW := lipgloss.Width(sep)
+	headerText := brHeader.Render("obmr browse")
+	headerW := lipgloss.Width(headerText)
+	indent := strings.Repeat(" ", headerW+2)
+	line := headerText + "  "
+	lineW := headerW + 2
+	var crumbLines []string
+	for i, r := range rendered {
+		addW := lipgloss.Width(r)
+		if i > 0 {
+			addW += sepW
+		}
+		if m.width > 0 && i > 0 && lineW+addW > m.width {
+			crumbLines = append(crumbLines, line)
+			line = indent
+			lineW = len(indent)
+		}
+		if i > 0 {
+			line += sep
+			lineW += sepW
+		}
+		line += r
+		lineW += lipgloss.Width(r)
+	}
+	crumbLines = append(crumbLines, line)
+	out := strings.Join(crumbLines, "\n") + "\n\n"
 	if m.errMsg != "" {
 		out += brErr.Render(m.errMsg) + "\n"
 	} else if len(m.entries) == 0 {

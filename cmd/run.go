@@ -16,7 +16,7 @@ import (
 func newRunCmd() *cobra.Command {
 	var prod bool
 	c := &cobra.Command{
-		Use:   "run [-- ob-args...]",
+		Use:   "run [-- snakemake-args...]",
 		Short: "Invoke `ob run` (uv by default; pixi when software_backend is conda)",
 		Long: `Runs the configured omnibenchmark.
 
@@ -30,7 +30,7 @@ and runs via ` + "`pixi run`" + `. Otherwise it runs via ` + "`uv tool run`" + `
 The omnibenchmark version is resolved from config (priority: pr > branch
 > version > latest pypi). See ` + "`obmr config`" + `.
 
-Extra arguments after -- are passed through to ob run.`,
+Extra arguments after -- are passed through to snakemake (via ob run).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			plan, err := resolvePlan("")
 			if err != nil {
@@ -55,7 +55,10 @@ Extra arguments after -- are passed through to ob run.`,
 			if !prod {
 				subArgs = append(subArgs, "--dirty")
 			}
-			subArgs = append(subArgs, passThrough...)
+			if len(passThrough) > 0 {
+				subArgs = append(subArgs, "--")
+				subArgs = append(subArgs, passThrough...)
+			}
 			return dispatchOb(plan, subArgs)
 		},
 	}
