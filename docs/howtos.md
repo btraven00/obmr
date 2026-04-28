@@ -119,3 +119,69 @@ obmr status
 
 Shows the active plan, dev/prod mode, local-edit divergence summary
 (with hint to `obmr plan promote`), and per-module branch + dirty flag.
+
+## Iterate on a single module
+
+When debugging one module's logic (e.g. tweaking `pca.py`), `obmr run`
++ Snakemake is too coarse. `obmr enter` drops you into a pixi shell
+scoped to that module, with upstream inputs from the latest
+successful run preloaded as env vars and a `runit` helper on PATH that
+echoes-then-runs the module's entrypoint with all required flags
+prefilled:
+
+```sh
+obmr enter pca-scanpy
+# inside the shell — plan-declared parameters are used as defaults:
+runit
+# + python pca.py --output_dir /tmp/... --name datasets \
+#     --normalized.h5 /.../datasets_normalized.h5 \
+#     --selected.genes /.../datasets_selected.txt.gz \
+#     --pca_type scanpy_arpack --n_components 50 --random_seed 42
+# (then it runs)
+
+# override any plan default by passing it after `runit`:
+runit --pca_type scanpy_randomized --random_seed 7
+```
+
+`runit` reads the **first** entry of the module's plan-declared
+`parameters:` block; for cartesian expansions like
+`selection_type: [a, b]`, it picks the first value. User-supplied flags
+override (argparse takes the last occurrence).
+
+You can also use the env vars directly:
+
+```sh
+echo $NORMALIZED_H5      # /.../datasets_normalized.h5
+echo $SELECTED_GENES     # /.../datasets_selected.txt.gz
+echo $OBMR_OUTPUT_DIR    # /tmp/obmr-enter-pca-scanpy-<rand>
+python pca.py --output_dir $OBMR_OUTPUT_DIR --name $OBMR_NAME \
+  --normalized.h5 $NORMALIZED_H5 --selected.genes $SELECTED_GENES \
+  --pca_type scanpy_arpack --n_components 50 --random_seed 0
+```
+
+Env-var names are derived from the plan's input ids (e.g.
+`normalized.h5` → `NORMALIZED_H5`). The upstream chain is anchored on
+the deepest matching candidate so all inputs come from one coherent
+DAG path.
+
+If you don't want a sub-shell, source the exports into your current
+shell:
+
+```sh
+eval "$(obmr enter pca-scanpy --print)"
+runit --pca_type scanpy_arpack --n_components 50 --random_seed 0
+```
+
+To debug interactively, add `ipython` / `ipdb` to the module's
+`pixi.toml` and pass `--env <name>` if you put them under a feature.
+
+### Requirements
+
+- The benchmark must be in dev mode (run `obmr dev` first — `obmr enter`
+  loads the local YAML).
+- At least one successful prior `obmr run` so the upstream stages have
+  produced files under `out/`. If a producer has never run, `obmr enter`
+  errors with the missing input id and a pointer to `obmr run`.
+- The module needs a `pixi.toml` (its environment) and an
+  `omnibenchmark.yaml` declaring its entrypoints (so `runit` can
+  resolve the correct script).

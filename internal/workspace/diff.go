@@ -244,6 +244,67 @@ func nodesEqualYAML(a, b *yaml.Node) bool {
 	return bytes.Equal(ab, bb)
 }
 
+// LocalOnlyModule describes a module present in <bench>.local.yaml but not
+// in the lock — typically one that the user added in dev mode and has not
+// promoted/pinned yet.
+type LocalOnlyModule struct {
+	Stage  string
+	ID     string
+	URL    string // raw repository.url from .local.yaml
+	AbsDir string // URL resolved relative to the benchmark dir
+}
+
+// LocalOnlyModules returns modules declared in <bench>.local.yaml whose
+// (stage, id) pair is not in lock. Returns nil if .local.yaml is missing.
+func LocalOnlyModules(canonicalYAML string, lock *Lock) ([]LocalOnlyModule, error) {
+	localPath := localOutputPath(canonicalYAML)
+	b, err := os.ReadFile(localPath)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var root yaml.Node
+	if err := yaml.Unmarshal(b, &root); err != nil {
+		return nil, err
+	}
+	have := map[string]bool{}
+	for _, m := range lock.Modules {
+		have[m.Stage+"/"+m.ID] = true
+	}
+	benchDir := filepath.Dir(canonicalYAML)
+	stages := findStagesNode(&root)
+	if stages == nil {
+		return nil, nil
+	}
+	var out []LocalOnlyModule
+	for _, s := range stages.Content {
+		sid := mapStringValue(s, "id")
+		if sid == "" {
+			continue
+		}
+		for mid, m := range moduleMap(s) {
+			if have[sid+"/"+mid] {
+				continue
+			}
+			url := ""
+			for i := 0; i+1 < len(m.Content); i += 2 {
+				if m.Content[i].Value == "repository" && m.Content[i+1].Kind == yaml.MappingNode {
+					url = repoURL(m.Content[i+1])
+					break
+				}
+			}
+			abs := url
+			if abs != "" && !filepath.IsAbs(abs) {
+				abs = filepath.Join(benchDir, abs)
+			}
+			out = append(out, LocalOnlyModule{Stage: sid, ID: mid, URL: url, AbsDir: abs})
+		}
+	}
+	return out, nil
+}
+
 // Summary returns a one-line summary like "+1 stages, -0 stages, ~2 modules"
 // or "" if no divergence.
 func (d *LocalDiff) Summary() string {

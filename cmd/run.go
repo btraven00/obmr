@@ -36,36 +36,6 @@ Extra arguments after -- are passed through to ob run.`,
 			if err != nil {
 				return err
 			}
-
-			cwd, _ := os.Getwd()
-			cp := config.Find(cwd)
-			var cfg *config.Config
-			workspaceDir := cwd
-			if cp != "" {
-				cfg, _ = config.Load(cp)
-				workspaceDir = filepath.Dir(filepath.Dir(cp))
-			}
-			if cfg == nil {
-				cfg = &config.Config{}
-			}
-
-			// Detect backend.
-			useConda := false
-			if f, err := benchmark.Load(plan); err == nil && strings.EqualFold(f.SoftwareBackend, "conda") {
-				useConda = true
-			}
-
-			// Pass-through args after `--`.
-			var passThrough []string
-			passIdx := cmd.Flags().ArgsLenAtDash()
-			if passIdx >= 0 {
-				passThrough = args[passIdx:]
-			} else {
-				passThrough = args
-			}
-
-			// In dev mode (default), feed ob the local YAML with rewritten
-			// paths/branches; in --prod, feed it the canonical.
 			yamlPath := plan
 			if !prod {
 				local := localYAMLPathFromCanonical(plan)
@@ -74,27 +44,56 @@ Extra arguments after -- are passed through to ob run.`,
 				}
 				yamlPath = local
 			}
-
-			printOmniBanner(cfg.Omnibenchmark, useConda)
-			if useConda {
-				return runPixi(workspaceDir, cfg.Omnibenchmark, yamlPath, prod, passThrough)
+			var passThrough []string
+			passIdx := cmd.Flags().ArgsLenAtDash()
+			if passIdx >= 0 {
+				passThrough = args[passIdx:]
+			} else {
+				passThrough = args
 			}
-			return runUv(cfg.Omnibenchmark, yamlPath, prod, passThrough)
+			subArgs := []string{"run", yamlPath}
+			if !prod {
+				subArgs = append(subArgs, "--dirty")
+			}
+			subArgs = append(subArgs, passThrough...)
+			return dispatchOb(plan, subArgs)
 		},
 	}
 	c.Flags().BoolVar(&prod, "prod", false, "run without --dirty (upstream-pinned mode)")
 	return c
 }
 
-func runUv(omni config.Omnibenchmark, plan string, prod bool, pass []string) error {
+// dispatchOb runs `ob <subArgs...>` via uv (default) or pixi (when the
+// plan's software_backend is "conda"), using the configured omnibenchmark
+// spec from .obmr/config.yaml.
+func dispatchOb(plan string, subArgs []string) error {
+	cwd, _ := os.Getwd()
+	cp := config.Find(cwd)
+	var cfg *config.Config
+	workspaceDir := cwd
+	if cp != "" {
+		cfg, _ = config.Load(cp)
+		workspaceDir = filepath.Dir(filepath.Dir(cp))
+	}
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+	useConda := false
+	if f, err := benchmark.Load(plan); err == nil && strings.EqualFold(f.SoftwareBackend, "conda") {
+		useConda = true
+	}
+	printOmniBanner(cfg.Omnibenchmark, useConda)
+	if useConda {
+		return runPixi(workspaceDir, cfg.Omnibenchmark, subArgs)
+	}
+	return runUv(cfg.Omnibenchmark, subArgs)
+}
+
+func runUv(omni config.Omnibenchmark, subArgs []string) error {
 	if err := requireTool("uv", "https://docs.astral.sh/uv/", "curl -LsSf https://astral.sh/uv/install.sh | sh"); err != nil {
 		return err
 	}
-	uvArgs := []string{"tool", "run", "--from", omniSpec(omni), "ob", "run", plan}
-	if !prod {
-		uvArgs = append(uvArgs, "--dirty")
-	}
-	uvArgs = append(uvArgs, pass...)
+	uvArgs := append([]string{"tool", "run", "--from", omniSpec(omni), "ob"}, subArgs...)
 	fmt.Fprintf(os.Stderr, "+ uv %s\n", strings.Join(uvArgs, " "))
 	ex := exec.Command("uv", uvArgs...)
 	ex.Stdin = os.Stdin
@@ -103,7 +102,7 @@ func runUv(omni config.Omnibenchmark, plan string, prod bool, pass []string) err
 	return ex.Run()
 }
 
-func runPixi(workspaceDir string, omni config.Omnibenchmark, plan string, prod bool, pass []string) error {
+func runPixi(workspaceDir string, omni config.Omnibenchmark, subArgs []string) error {
 	if err := requireTool("pixi", "https://pixi.sh", "curl -fsSL https://pixi.sh/install.sh | sh"); err != nil {
 		return err
 	}
@@ -111,7 +110,17 @@ func runPixi(workspaceDir string, omni config.Omnibenchmark, plan string, prod b
 	if err != nil {
 		return fmt.Errorf("write pixi manifest: %w", err)
 	}
-	if changed {
+	switch {
+	case omni.PR != 0 || omni.Branch != "":
+		// Mutable git ref: force a re-resolve so new commits land.
+		fmt.Fprintf(os.Stderr, "+ pixi update --manifest-path %s omnibenchmark\n", manifest)
+		up := exec.Command("pixi", "update", "--manifest-path", manifest, "omnibenchmark")
+		up.Stdout = os.Stdout
+		up.Stderr = os.Stderr
+		if err := up.Run(); err != nil {
+			return fmt.Errorf("pixi update: %w", err)
+		}
+	case changed:
 		fmt.Fprintf(os.Stderr, "+ pixi install --manifest-path %s\n", manifest)
 		install := exec.Command("pixi", "install", "--manifest-path", manifest)
 		install.Stdout = os.Stdout
@@ -120,13 +129,9 @@ func runPixi(workspaceDir string, omni config.Omnibenchmark, plan string, prod b
 			return fmt.Errorf("pixi install: %w", err)
 		}
 	}
-	args := []string{"run", "--manifest-path", manifest, "ob", "run", plan}
-	if !prod {
-		args = append(args, "--dirty")
-	}
-	args = append(args, pass...)
-	fmt.Fprintf(os.Stderr, "+ pixi %s\n", strings.Join(args, " "))
-	ex := exec.Command("pixi", args...)
+	pxArgs := append([]string{"run", "--manifest-path", manifest, "ob"}, subArgs...)
+	fmt.Fprintf(os.Stderr, "+ pixi %s\n", strings.Join(pxArgs, " "))
+	ex := exec.Command("pixi", pxArgs...)
 	ex.Stdin = os.Stdin
 	ex.Stdout = os.Stdout
 	ex.Stderr = os.Stderr
@@ -134,25 +139,34 @@ func runPixi(workspaceDir string, omni config.Omnibenchmark, plan string, prod b
 }
 
 // printOmniBanner prints a one-line banner identifying which omnibenchmark
-// build is about to run.
+// build is about to run, plus a hint on how to revert any non-default
+// override.
 func printOmniBanner(o config.Omnibenchmark, conda bool) {
 	runner := "uv"
 	if conda {
 		runner = "pixi"
 	}
-	var src string
+	var src, unsetKey string
 	switch {
 	case o.PR != 0:
 		src = paint(fmt.Sprintf("PR #%d", o.PR), ansiYellow+ansiBold)
+		unsetKey = "omnibenchmark.pr"
 	case o.Branch != "":
 		src = paint("branch "+o.Branch, ansiYellow+ansiBold)
+		unsetKey = "omnibenchmark.branch"
 	case o.Version != "":
 		src = paint("v"+o.Version, ansiCyan)
+		unsetKey = "omnibenchmark.version"
 	default:
 		src = paint("pypi (latest)", ansiDim)
 	}
 	fmt.Fprintf(os.Stderr, "%s omnibenchmark %s via %s\n",
 		paint("==>", ansiGreen+ansiBold), src, paint(runner, ansiBlue+ansiBold))
+	if unsetKey != "" {
+		fmt.Fprintf(os.Stderr, "    %s revert with `%s`\n",
+			paint("hint:", ansiDim),
+			paint("obmr config --unset "+unsetKey, ansiBold))
+	}
 }
 
 // requireTool returns a friendly error if name is not on PATH, including a

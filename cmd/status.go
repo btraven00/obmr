@@ -78,6 +78,32 @@ func newStatusCmd() *cobra.Command {
 				}
 				fmt.Printf("%-20s %s\n", r.Module.ID, r.Out)
 			}
+			if mode == "dev" {
+				extras, err := workspace.LocalOnlyModules(plan, lock)
+				if err != nil {
+					fmt.Printf("%s %v\n", paint("local-only: error:", ansiRed+ansiBold), err)
+				} else if len(extras) > 0 {
+					fmt.Printf("%s\n", paint("local-only:", ansiDim))
+					for _, e := range extras {
+						id := e.Stage + "/" + e.ID
+						branch, gerr := workspace.Git(e.AbsDir, "rev-parse", "--abbrev-ref", "HEAD")
+						if gerr != nil {
+							fmt.Printf("%-20s %s %v\n", id, paint("ERROR:", ansiRed+ansiBold), gerr)
+							continue
+						}
+						dirty, derr := workspace.Git(e.AbsDir, "status", "--porcelain")
+						if derr != nil {
+							fmt.Printf("%-20s %s %v\n", id, paint("ERROR:", ansiRed+ansiBold), derr)
+							continue
+						}
+						state := paint("clean", ansiGreen)
+						if strings.TrimSpace(dirty) != "" {
+							state = paint("DIRTY", ansiRed+ansiBold)
+						}
+						fmt.Printf("%-20s %s\t%s\n", id, paint(branch, ansiCyan), state)
+					}
+				}
+			}
 			return nil
 		},
 	}

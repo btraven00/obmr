@@ -1,7 +1,9 @@
 # obmr
 
-omnibenchmark monorepo helper. Manages a benchmark and its module repos
-as a workspace of sibling clones, driven by the benchmark YAML.
+an opinionated omnibenchmark monorepo helper.
+
+Manages a benchmark and its module repos as a workspace of sibling clones,
+driven by the benchmark YAML.
 
 Full docs in [`docs/`](docs/) (build with `mkdocs serve`).
 
@@ -46,6 +48,7 @@ obmr trim                 # delete merged local branches
 | `obmr list` | Print modules in the canonical YAML. |
 | `obmr init [--parent DIR]` | Clone modules; write `.obmr.lock`. |
 | `obmr dev [--fork]` | Write `bench.local.yaml`; switch modules to `origin/HEAD`; with `--fork`, ensure a `fork` remote per module. |
+| `obmr enter <module-id> [--print]` | Open a pixi shell for a module with upstream inputs preloaded as env vars. `--print` emits `export` lines for `eval`. |
 | `obmr status` | Branch + dirty per module. |
 | `obmr checkout <branch> [-b]` | Concerted checkout. |
 | `obmr foreach -- <cmd>` | Run a shell command in every module. |
@@ -73,5 +76,5 @@ obmr trim                 # delete merged local branches
 ## Requirements
 
 - `git` on PATH.
-- `uv` on PATH for `obmr run`.
-- `gh` on PATH and authenticated for `obmr dev --fork`.
+- `uv` on PATH for `obmr run`, or `pixi` if conda is used.
+`- `gh` on PATH and authenticated for `obmr dev --fork`.

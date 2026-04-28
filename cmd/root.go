@@ -28,7 +28,12 @@ func Root() *cobra.Command {
 	runC := newRunCmd()
 	dev := newDevCmd()
 	list := newListCmd()
-	for _, c := range []*cobra.Command{use, initC, status, runC, dev, list} {
+	cdC := newCdCmd()
+	browseC := newBrowseCmd()
+	enterC := newEnterCmd()
+	shellInit := newShellInitCmd()
+	shellInst := newShellInstallCmd()
+	for _, c := range []*cobra.Command{use, initC, status, runC, dev, list, cdC, browseC, enterC} {
 		c.GroupID = groupBasics
 	}
 
@@ -43,11 +48,13 @@ func Root() *cobra.Command {
 
 	plan := newPlanCmd()
 	plan.GroupID = groupBench
+	newmod := newNewModuleCmd()
+	newmod.GroupID = groupBench
 
 	root.AddCommand(
-		use, initC, status, runC, dev, list,
+		use, initC, status, runC, dev, list, cdC, browseC, enterC, shellInit, shellInst,
 		checkout, push, pull, foreach, trim,
-		plan,
+		plan, newmod,
 		newConfigCmd(),
 	)
 	return root
