@@ -64,10 +64,22 @@ Extra arguments after -- are passed through to ob run.`,
 				passThrough = args
 			}
 
-			if useConda {
-				return runPixi(workspaceDir, cfg.Omnibenchmark, plan, prod, passThrough)
+			// In dev mode (default), feed ob the local YAML with rewritten
+			// paths/branches; in --prod, feed it the canonical.
+			yamlPath := plan
+			if !prod {
+				local := localYAMLPathFromCanonical(plan)
+				if _, err := os.Stat(local); err != nil {
+					return fmt.Errorf("%s not found (run `obmr dev` first, or pass --prod)", local)
+				}
+				yamlPath = local
 			}
-			return runUv(cfg.Omnibenchmark, plan, prod, passThrough)
+
+			printOmniBanner(cfg.Omnibenchmark, useConda)
+			if useConda {
+				return runPixi(workspaceDir, cfg.Omnibenchmark, yamlPath, prod, passThrough)
+			}
+			return runUv(cfg.Omnibenchmark, yamlPath, prod, passThrough)
 		},
 	}
 	c.Flags().BoolVar(&prod, "prod", false, "run without --dirty (upstream-pinned mode)")
@@ -95,9 +107,18 @@ func runPixi(workspaceDir string, omni config.Omnibenchmark, plan string, prod b
 	if err := requireTool("pixi", "https://pixi.sh", "curl -fsSL https://pixi.sh/install.sh | sh"); err != nil {
 		return err
 	}
-	manifest, err := runner.EnsurePixiManifest(workspaceDir, omni)
+	manifest, changed, err := runner.EnsurePixiManifest(workspaceDir, omni)
 	if err != nil {
 		return fmt.Errorf("write pixi manifest: %w", err)
+	}
+	if changed {
+		fmt.Fprintf(os.Stderr, "+ pixi install --manifest-path %s\n", manifest)
+		install := exec.Command("pixi", "install", "--manifest-path", manifest)
+		install.Stdout = os.Stdout
+		install.Stderr = os.Stderr
+		if err := install.Run(); err != nil {
+			return fmt.Errorf("pixi install: %w", err)
+		}
 	}
 	args := []string{"run", "--manifest-path", manifest, "ob", "run", plan}
 	if !prod {
@@ -110,6 +131,28 @@ func runPixi(workspaceDir string, omni config.Omnibenchmark, plan string, prod b
 	ex.Stdout = os.Stdout
 	ex.Stderr = os.Stderr
 	return ex.Run()
+}
+
+// printOmniBanner prints a one-line banner identifying which omnibenchmark
+// build is about to run.
+func printOmniBanner(o config.Omnibenchmark, conda bool) {
+	runner := "uv"
+	if conda {
+		runner = "pixi"
+	}
+	var src string
+	switch {
+	case o.PR != 0:
+		src = paint(fmt.Sprintf("PR #%d", o.PR), ansiYellow+ansiBold)
+	case o.Branch != "":
+		src = paint("branch "+o.Branch, ansiYellow+ansiBold)
+	case o.Version != "":
+		src = paint("v"+o.Version, ansiCyan)
+	default:
+		src = paint("pypi (latest)", ansiDim)
+	}
+	fmt.Fprintf(os.Stderr, "%s omnibenchmark %s via %s\n",
+		paint("==>", ansiGreen+ansiBold), src, paint(runner, ansiBlue+ansiBold))
 }
 
 // requireTool returns a friendly error if name is not on PATH, including a

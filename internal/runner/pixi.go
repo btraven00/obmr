@@ -12,21 +12,22 @@ import (
 const pixiManifestName = "pixi.toml"
 
 // EnsurePixiManifest writes (or rewrites if changed) <workspaceDir>/.obmr/pixi.toml
-// for use with the conda backend. Returns the manifest path.
-func EnsurePixiManifest(workspaceDir string, omni config.Omnibenchmark) (string, error) {
+// for use with the conda backend. Returns the manifest path and whether it
+// was (re)written this call.
+func EnsurePixiManifest(workspaceDir string, omni config.Omnibenchmark) (string, bool, error) {
 	dir := filepath.Join(workspaceDir, config.DirName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", err
+		return "", false, err
 	}
 	p := filepath.Join(dir, pixiManifestName)
 	want := renderPixi(omni)
 	if existing, err := os.ReadFile(p); err == nil && string(existing) == want {
-		return p, nil
+		return p, false, nil
 	}
 	if err := os.WriteFile(p, []byte(want), 0644); err != nil {
-		return "", err
+		return "", false, err
 	}
-	return p, nil
+	return p, true, nil
 }
 
 func renderPixi(o config.Omnibenchmark) string {

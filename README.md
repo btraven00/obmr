@@ -3,7 +3,7 @@
 omnibenchmark monorepo helper. Manages a benchmark and its module repos
 as a workspace of sibling clones, driven by the benchmark YAML.
 
-See [docs/spec.md](docs/spec.md) for the full workflow and design rules.
+Full docs in [`docs/`](docs/) (build with `mkdocs serve`).
 
 ## Build
 
@@ -51,7 +51,9 @@ obmr trim                 # delete merged local branches
 | `obmr foreach -- <cmd>` | Run a shell command in every module. |
 | `obmr pull` | `git pull --ff-only` per module. |
 | `obmr push` | Push current branch (fork if present, else origin). |
-| `obmr pin [--ref REF]` | Rewrite canonical commit SHAs from `origin/<ref>`. |
+| `obmr plan fmt` | Reformat a plan YAML in place (preserves comments). |
+| `obmr plan pin [--ref REF]` | Rewrite canonical commit SHAs from `origin/<ref>`. |
+| `obmr plan promote` | Copy local YAML edits back into canonical. |
 | `obmr trim [--branch NAME] [--force]` | Delete merged local branches. |
 
 ## Layout
