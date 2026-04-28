@@ -20,7 +20,7 @@ func obmrShellSnippet(shell string) string {
   d=$(obmr cd "$@") || return $?
   [ -n "$d" ] && cd "$d"
 }
-obrowse() {
+outd() {
   local d
   d=$(obmr browse "$@") || return $?
   [ -n "$d" ] && cd "$d"
