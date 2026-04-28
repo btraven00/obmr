@@ -6,11 +6,32 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 )
+
+// humanSize formats a byte count like "12K", "3.4M", "1.2G".
+func humanSize(n int64) string {
+	const k = 1024
+	if n < k {
+		return fmt.Sprintf("%dB", n)
+	}
+	units := []string{"K", "M", "G", "T", "P"}
+	val := float64(n) / k
+	idx := 0
+	for val >= k && idx < len(units)-1 {
+		val /= k
+		idx++
+	}
+	if val < 10 {
+		return fmt.Sprintf("%.1f%s", val, units[idx])
+	}
+	return fmt.Sprintf("%.0f%s", val, units[idx])
+}
 
 func newBrowseCmd() *cobra.Command {
 	var rootArg string
@@ -26,7 +47,7 @@ Keys:
   ↑/↓ or j/k     move
   → or enter     descend into highlighted folder
   ← or backspace ascend (stops at the start root)
-  s or .         select the current folder
+  space or .     select the current folder
   q or esc       cancel
 
 The chosen absolute path is printed on stdout; the TUI runs on stderr, so the
@@ -66,6 +87,12 @@ The chosen absolute path is printed on stdout; the TUI runs on stderr, so the
 			if !st.IsDir() {
 				return fmt.Errorf("%s is not a directory", start)
 			}
+
+			// `outd` runs `obmr browse` in $(...), so stdout is a pipe and
+			// lipgloss's default profile (sniffed from stdout) would strip
+			// all colors. Force it to detect from stderr — the TUI's
+			// real output.
+			lipgloss.SetColorProfile(termenv.NewOutput(os.Stderr).Profile)
 
 			m := browseModel{root: start, cwd: start}
 			m.refresh()
@@ -116,10 +143,15 @@ func completeBenchPath(benchDir, toComplete string) ([]string, cobra.ShellCompDi
 	}
 	var out []string
 	for _, e := range entries {
-		if !e.IsDir() {
+		name := e.Name()
+		if strings.HasPrefix(name, ".") {
 			continue
 		}
-		name := e.Name()
+		full := filepath.Join(searchDir, name)
+		st, err := os.Stat(full)
+		if err != nil || !st.IsDir() {
+			continue
+		}
 		if !strings.HasPrefix(name, prefix) {
 			continue
 		}
@@ -129,7 +161,7 @@ func completeBenchPath(benchDir, toComplete string) ([]string, cobra.ShellCompDi
 		}
 		candidate := base + name
 		// Collapse single-child chains.
-		full := filepath.Join(benchDir, candidate)
+		full = filepath.Join(benchDir, candidate)
 		for {
 			subs, err := os.ReadDir(full)
 			if err != nil {
@@ -158,10 +190,20 @@ type browseModel struct {
 	root    string
 	cwd     string
 	entries []os.DirEntry
+	files   []fileRow // up to fileLimit; trailing row with name="..." if more
 	cursor  int
 	chosen  string
 	errMsg  string
 }
+
+type fileRow struct {
+	name    string
+	size    int64
+	modTime time.Time
+	more    bool // true for the "..." sentinel row
+}
+
+const fileLimit = 10
 
 func (m *browseModel) refresh() {
 	m.cursor = 0
@@ -172,14 +214,34 @@ func (m *browseModel) refresh() {
 		m.errMsg = err.Error()
 		return
 	}
+	// Show readable symlinks (e.g. `filter_type-manual` -> `.f876a054`) and
+	// hide their hash targets. Plain dirs without a sibling symlink still
+	// show. Anything starting with "." is hidden either way.
 	dirs := es[:0:0]
+	var files []fileRow
 	for _, e := range es {
-		if e.IsDir() {
+		name := e.Name()
+		if strings.HasPrefix(name, ".") {
+			continue
+		}
+		full := filepath.Join(m.cwd, name)
+		st, err := os.Stat(full)
+		if err != nil {
+			continue
+		}
+		if st.IsDir() {
 			dirs = append(dirs, e)
+		} else {
+			files = append(files, fileRow{name: name, size: st.Size(), modTime: st.ModTime()})
 		}
 	}
 	sort.Slice(dirs, func(i, j int) bool { return dirs[i].Name() < dirs[j].Name() })
+	sort.Slice(files, func(i, j int) bool { return files[i].name < files[j].name })
 	m.entries = dirs
+	if len(files) > fileLimit {
+		files = append(files[:fileLimit:fileLimit], fileRow{name: "...", more: true})
+	}
+	m.files = files
 }
 
 func (m browseModel) Init() tea.Cmd { return nil }
@@ -229,7 +291,7 @@ func (m browseModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 			}
-		case "s", ".":
+		case " ", ".":
 			m.chosen = m.cwd
 			return m, tea.Quit
 		case "home", "g":
@@ -248,20 +310,64 @@ var (
 	brPath   = lipgloss.NewStyle().Faint(true)
 	brSel    = lipgloss.NewStyle().Foreground(lipgloss.Color("13")).Bold(true)
 	brDir    = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))
-	brHint   = lipgloss.NewStyle().Faint(true).Italic(true)
-	brErr    = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	brCrumb  = lipgloss.NewStyle().Foreground(lipgloss.Color("14"))
+	brCrumbS = lipgloss.NewStyle().Faint(true)
+	brFile   = lipgloss.NewStyle().Faint(true)
+	// lsd-ish category palette. Bold + hex so they survive theme remaps
+	// and remain visible on light/dark backgrounds. Fallbacks to ANSI
+	// palette codes for terminals without truecolor.
+	brFileData = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.AdaptiveColor{Light: "#b58900", Dark: "#e5c07b"})
+	brFileArch = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.AdaptiveColor{Light: "#dc322f", Dark: "#e06c75"})
+	brFileCode = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.AdaptiveColor{Light: "#198844", Dark: "#98c379"})
+	brFileImg  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.AdaptiveColor{Light: "#9024a0", Dark: "#c678dd"})
+	brFileDoc  = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.AdaptiveColor{Light: "#586e75", Dark: "#abb2bf"})
+	brHint     = lipgloss.NewStyle().Faint(true).Italic(true)
+	brErr      = lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
+	brMeta     = lipgloss.NewStyle().Faint(true)
 )
 
-func (m browseModel) View() string {
-	rel := m.cwd
-	if r, err := filepath.Rel(m.root, m.cwd); err == nil {
-		if r == "." {
-			rel = filepath.Base(m.root) + "/"
+// styleForFile picks a color by extension, lsd-style.
+func styleForFile(name string) lipgloss.Style {
+	if name == "..." {
+		return brFile
+	}
+	ext := strings.ToLower(filepath.Ext(name))
+	// Strip a trailing compression suffix to classify the underlying type.
+	switch ext {
+	case ".gz", ".bz2", ".xz", ".zst":
+		inner := strings.ToLower(filepath.Ext(strings.TrimSuffix(name, ext)))
+		if inner != "" {
+			ext = inner
 		} else {
-			rel = filepath.Base(m.root) + "/" + r
+			return brFileArch
 		}
 	}
-	out := brHeader.Render("obmr browse") + "  " + brPath.Render(rel) + "\n\n"
+	switch ext {
+	case ".h5", ".h5ad", ".hdf5", ".csv", ".tsv", ".json", ".yaml", ".yml", ".parquet", ".feather", ".rds":
+		return brFileData
+	case ".zip", ".tar", ".tgz", ".7z":
+		return brFileArch
+	case ".py", ".r", ".sh", ".go", ".rs", ".js", ".ts", ".c", ".cpp", ".h", ".hpp":
+		return brFileCode
+	case ".png", ".jpg", ".jpeg", ".pdf", ".svg", ".gif":
+		return brFileImg
+	case ".md", ".txt", ".log", ".out", ".rst":
+		return brFileDoc
+	}
+	return brFile
+}
+
+func (m browseModel) View() string {
+	crumbs := []string{filepath.Base(m.root)}
+	if r, err := filepath.Rel(m.root, m.cwd); err == nil && r != "." {
+		crumbs = append(crumbs, strings.Split(r, string(filepath.Separator))...)
+	}
+	rendered := make([]string, len(crumbs))
+	for i, c := range crumbs {
+		rendered[i] = brCrumb.Render(c)
+	}
+	sep := " " + brCrumbS.Render("›") + " "
+	out := brHeader.Render("obmr browse") + "  " + strings.Join(rendered, sep) + "\n\n"
 	if m.errMsg != "" {
 		out += brErr.Render(m.errMsg) + "\n"
 	} else if len(m.entries) == 0 {
@@ -277,11 +383,36 @@ func (m browseModel) View() string {
 			out += cur + line + "\n"
 		}
 	}
+	// File area: always reserve fileLimit rows so the cursor/footer
+	// don't jump when navigating between dirs with different file counts.
+	out += "\n"
+	nameW := 0
+	for _, f := range m.files {
+		if l := len(f.name); l > nameW {
+			nameW = l
+		}
+	}
+	for i := 0; i < fileLimit; i++ {
+		if i >= len(m.files) {
+			out += "\n"
+			continue
+		}
+		f := m.files[i]
+		if f.more {
+			out += "  " + brFile.Render(f.name) + "\n"
+			continue
+		}
+		pad := strings.Repeat(" ", nameW-len(f.name))
+		meta := fmt.Sprintf("  %8s  %s",
+			humanSize(f.size), f.modTime.Local().Format("2006-01-02 15:04"))
+		out += "  " + styleForFile(f.name).Render(f.name) + pad +
+			brMeta.Render(meta) + "\n"
+	}
 	out += "\n" + brHint.Render(strings.Join([]string{
 		"↑/↓ move",
 		"→/enter descend",
 		"← ascend",
-		"s select",
+		"space select",
 		"q cancel",
 	}, " • "))
 	return out

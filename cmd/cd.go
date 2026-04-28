@@ -8,6 +8,7 @@ import (
 	"github.com/btraven00/obmr/internal/benchmark"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 	"github.com/spf13/cobra"
 )
 
@@ -74,6 +75,10 @@ or ` + "`obmr shell-install`" + ` to set up the wrapper.
 				}
 				return fmt.Errorf("no module with id %q (try `obmr list`)", want)
 			}
+
+			// `ocd` consumes our stdout via $(...), so force lipgloss to
+			// detect colors from stderr (the TUI output) instead.
+			lipgloss.SetColorProfile(termenv.NewOutput(os.Stderr).Profile)
 
 			m := cdModel{items: items, chosen: -1}
 			p := tea.NewProgram(m, tea.WithOutput(os.Stderr), tea.WithAltScreen())
