@@ -23,7 +23,7 @@ func newLogCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			logsDir := filepath.Join(benchDir, "out", ".logs")
+			logsDir := filepath.Join(benchDir, "out", ".snakemake", "log")
 
 			snakeLog, err := latestSnakemakeLog(logsDir)
 			if err != nil {
@@ -64,7 +64,7 @@ func latestSnakemakeLog(dir string) (string, error) {
 	var bestMod int64
 	for _, e := range entries {
 		name := e.Name()
-		if !strings.HasPrefix(name, "snakemake_") || !strings.HasSuffix(name, ".log") {
+		if !strings.HasSuffix(name, ".snakemake.log") {
 			continue
 		}
 		info, err := e.Info()
@@ -77,7 +77,7 @@ func latestSnakemakeLog(dir string) (string, error) {
 		}
 	}
 	if best == "" {
-		return "", fmt.Errorf("no snakemake_*.log found in %s", dir)
+		return "", fmt.Errorf("no *.snakemake.log found in %s", dir)
 	}
 	return best, nil
 }
