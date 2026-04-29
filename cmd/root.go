@@ -33,7 +33,8 @@ func Root() *cobra.Command {
 	enterC := newEnterCmd()
 	shellInit := newShellInitCmd()
 	shellInst := newShellInstallCmd()
-	for _, c := range []*cobra.Command{use, initC, status, runC, dev, list, cdC, browseC, enterC} {
+	logC := newLogCmd()
+	for _, c := range []*cobra.Command{use, initC, status, runC, dev, list, cdC, browseC, enterC, logC} {
 		c.GroupID = groupBasics
 	}
 
@@ -52,7 +53,7 @@ func Root() *cobra.Command {
 	newmod.GroupID = groupBench
 
 	root.AddCommand(
-		use, initC, status, runC, dev, list, cdC, browseC, enterC, shellInit, shellInst,
+		use, initC, status, runC, dev, list, cdC, browseC, enterC, logC, shellInit, shellInst,
 		checkout, push, pull, foreach, trim,
 		plan, newmod,
 		newConfigCmd(),

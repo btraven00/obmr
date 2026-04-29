@@ -59,7 +59,7 @@ Extra arguments after -- are passed through to ob create module.`,
 			} else if len(args) > 1 {
 				passThrough = args[1:]
 			}
-			subArgs := append([]string{"create", "module"}, passThrough...)
+			subArgs := append([]string{"create", "module", "--dirty"}, passThrough...)
 			subArgs = append(subArgs, modulePath)
 
 			return dispatchOb(plan, subArgs)
