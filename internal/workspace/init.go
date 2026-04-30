@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/btraven00/obmr/internal/benchmark"
+	"github.com/btraven00/obflow/internal/benchmark"
 )
 
 // Init clones every module declared in benchYAML into parentDir (resolved

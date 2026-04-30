@@ -1,21 +1,21 @@
 # How-to
 
-Task-oriented recipes. Each assumes you've run `obmr use <plan>` and
-`obmr init`.
+Task-oriented recipes. Each assumes you've run `obflow use <plan>` and
+`obflow init`.
 
 ## Test a PR of omnibenchmark
 
-Configure once, then `obmr run` uses the PR build:
+Configure once, then `obflow run` uses the PR build:
 
 ```sh
-obmr config omnibenchmark.pr 123
-obmr run
+obflow config omnibenchmark.pr 123
+obflow run
 ```
 
 When done, clear it:
 
 ```sh
-obmr config --unset omnibenchmark.pr   # back to latest pypi
+obflow config --unset omnibenchmark.pr   # back to latest pypi
 ```
 
 Resolution priority is `pr > branch > version > pypi-latest`. Setting
@@ -23,17 +23,17 @@ any of `branch`/`version` follows the same pattern.
 
 ## Test a PR on a benchmark module
 
-`obmr` doesn't wrap PR fetching; do it per-module with `gh`:
+`obflow` doesn't wrap PR fetching; do it per-module with `gh`:
 
 ```sh
 cd ../some-bench-modules/<module>
 gh pr checkout 456
 cd -
-obmr dev          # regenerate bench.local.yaml with the new branch
-obmr run          # runs against the checked-out PR
+obflow dev          # regenerate bench.local.yaml with the new branch
+obflow run          # runs against the checked-out PR
 ```
 
-`obmr status` will show the module on the PR's branch.
+`obflow status` will show the module on the PR's branch.
 
 ## Edit a YAML stage and push it back to canonical
 
@@ -41,8 +41,8 @@ Sketch in `bench.local.yaml` (uncomment a stage, tweak parameters,
 whatever). When ready:
 
 ```sh
-obmr status                # confirms divergence + hint
-obmr plan promote          # writes canonical from local (urls/commits restored)
+obflow status                # confirms divergence + hint
+obflow plan promote          # writes canonical from local (urls/commits restored)
 git -C $(dirname <plan>) diff   # review
 ```
 
@@ -53,9 +53,9 @@ github URL — fix that first).
 ## Update canonical after PRs merge upstream
 
 ```sh
-obmr pull            # fast-forward each module on its current branch
-obmr plan pin        # rewrite canonical SHAs from origin/HEAD
-obmr trim            # clean up merged local branches
+obflow pull            # fast-forward each module on its current branch
+obflow plan pin        # rewrite canonical SHAs from origin/HEAD
+obflow trim            # clean up merged local branches
 ```
 
 `plan pin` is upstream-only (`git fetch origin && rev-parse origin/<ref>`),
@@ -64,10 +64,10 @@ so the SHAs it writes are always fetchable by anyone.
 ## Use your own forks instead of pushing to upstream
 
 ```sh
-obmr dev --fork      # creates a `fork` remote per module via `gh repo fork`
-obmr checkout feat-x -b
+obflow dev --fork      # creates a `fork` remote per module via `gh repo fork`
+obflow checkout feat-x -b
 # ... edit, commit ...
-obmr push            # auto-targets `fork` (falls back to `origin`)
+obflow push            # auto-targets `fork` (falls back to `origin`)
 ```
 
 The canonical YAML never references your forks; they're per-developer
@@ -76,19 +76,19 @@ plumbing.
 ## Branch across all modules at once
 
 ```sh
-obmr checkout feat-x -b   # creates feat-x in every module
-obmr status               # confirm
+obflow checkout feat-x -b   # creates feat-x in every module
+obflow status               # confirm
 ```
 
-`obmr` deliberately creates the branch in every module, even ones you
-may not touch. After the feature ships, `obmr trim` removes empty/merged
+`obflow` deliberately creates the branch in every module, even ones you
+may not touch. After the feature ships, `obflow trim` removes empty/merged
 branches in one shot.
 
 ## Run an arbitrary command across all modules
 
 ```sh
-obmr foreach -- git log -1 --oneline
-obmr foreach -- pre-commit run --all-files
+obflow foreach -- git log -1 --oneline
+obflow foreach -- pre-commit run --all-files
 ```
 
 Per-repo prefix on each line; runs in parallel.
@@ -97,15 +97,15 @@ Per-repo prefix on each line; runs in parallel.
 
 ```sh
 git pull              # in the canonical bench repo (you own it)
-obmr init             # clones any new modules; existing clones untouched
-obmr dev              # regenerate bench.local.yaml
+obflow init             # clones any new modules; existing clones untouched
+obflow dev              # regenerate bench.local.yaml
 ```
 
 ## Fix a malformed plan YAML
 
 ```sh
-obmr plan fmt         # in dev mode, formats local; otherwise canonical
-obmr plan fmt --local # explicit
+obflow plan fmt         # in dev mode, formats local; otherwise canonical
+obflow plan fmt --local # explicit
 ```
 
 Requires the file to parse first. Parse errors are shown cargo-style with
@@ -114,23 +114,23 @@ context lines and a caret.
 ## See where I am
 
 ```sh
-obmr status
+obflow status
 ```
 
 Shows the active plan, dev/prod mode, local-edit divergence summary
-(with hint to `obmr plan promote`), and per-module branch + dirty flag.
+(with hint to `obflow plan promote`), and per-module branch + dirty flag.
 
 ## Iterate on a single module
 
-When debugging one module's logic (e.g. tweaking `pca.py`), `obmr run`
-+ Snakemake is too coarse. `obmr enter` drops you into a pixi shell
+When debugging one module's logic (e.g. tweaking `pca.py`), `obflow run`
++ Snakemake is too coarse. `obflow enter` drops you into a pixi shell
 scoped to that module, with upstream inputs from the latest
 successful run preloaded as env vars and a `runit` helper on PATH that
 echoes-then-runs the module's entrypoint with all required flags
 prefilled:
 
 ```sh
-obmr enter pca-scanpy
+obflow enter pca-scanpy
 # inside the shell — plan-declared parameters are used as defaults:
 runit
 # + python pca.py --output_dir /tmp/... --name datasets \
@@ -153,7 +153,7 @@ You can also use the env vars directly:
 ```sh
 echo $NORMALIZED_H5      # /.../datasets_normalized.h5
 echo $SELECTED_GENES     # /.../datasets_selected.txt.gz
-echo $OBMR_OUTPUT_DIR    # /tmp/obmr-enter-pca-scanpy-<rand>
+echo $OBMR_OUTPUT_DIR    # /tmp/obflow-enter-pca-scanpy-<rand>
 python pca.py --output_dir $OBMR_OUTPUT_DIR --name $OBMR_NAME \
   --normalized.h5 $NORMALIZED_H5 --selected.genes $SELECTED_GENES \
   --pca_type scanpy_arpack --n_components 50 --random_seed 0
@@ -168,7 +168,7 @@ If you don't want a sub-shell, source the exports into your current
 shell:
 
 ```sh
-eval "$(obmr enter pca-scanpy --print)"
+eval "$(obflow enter pca-scanpy --print)"
 runit --pca_type scanpy_arpack --n_components 50 --random_seed 0
 ```
 
@@ -177,11 +177,11 @@ To debug interactively, add `ipython` / `ipdb` to the module's
 
 ### Requirements
 
-- The benchmark must be in dev mode (run `obmr dev` first — `obmr enter`
+- The benchmark must be in dev mode (run `obflow dev` first — `obflow enter`
   loads the local YAML).
-- At least one successful prior `obmr run` so the upstream stages have
-  produced files under `out/`. If a producer has never run, `obmr enter`
-  errors with the missing input id and a pointer to `obmr run`.
+- At least one successful prior `obflow run` so the upstream stages have
+  produced files under `out/`. If a producer has never run, `obflow enter`
+  errors with the missing input id and a pointer to `obflow run`.
 - The module needs a `pixi.toml` (its environment) and an
   `omnibenchmark.yaml` declaring its entrypoints (so `runit` can
   resolve the correct script).

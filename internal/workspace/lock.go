@@ -8,7 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const LockName = ".obmr.lock"
+const LockName = ".obflow.lock"
 
 type Lock struct {
 	BenchmarkFile string         `yaml:"benchmark_file"`

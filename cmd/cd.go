@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btraven00/obmr/internal/benchmark"
+	"github.com/btraven00/obflow/internal/benchmark"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/termenv"
@@ -22,8 +22,8 @@ With a module-id, prints that module's absolute path directly (non-interactive).
 Use ↑/↓ or j/k to move, Enter to select, q/Esc to cancel.
 
 The chosen absolute path is printed on stdout; the TUI itself runs on stderr,
-so wrap with a shell function to actually change directory. Run ` + "`obmr shell-init`" + `
-or ` + "`obmr shell-install`" + ` to set up the wrapper.
+so wrap with a shell function to actually change directory. Run ` + "`obflow shell-init`" + `
+or ` + "`obflow shell-install`" + ` to set up the wrapper.
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -32,7 +32,7 @@ or ` + "`obmr shell-install`" + ` to set up the wrapper.
 				return err
 			}
 			if detectMode(plan) != "dev" {
-				return fmt.Errorf("`obmr cd` only operates in dev mode (no %s found); run `obmr dev` first",
+				return fmt.Errorf("`obflow cd` only operates in dev mode (no %s found); run `obflow dev` first",
 					filepath.Base(localYAMLPathFromCanonical(plan)))
 			}
 			localPlan := localYAMLPathFromCanonical(plan)
@@ -73,7 +73,7 @@ or ` + "`obmr shell-install`" + ` to set up the wrapper.
 						return nil
 					}
 				}
-				return fmt.Errorf("no module with id %q (try `obmr list`)", want)
+				return fmt.Errorf("no module with id %q (try `obflow list`)", want)
 			}
 
 			// `ocd` consumes our stdout via $(...), so force lipgloss to
@@ -181,7 +181,7 @@ var (
 )
 
 func (m cdModel) View() string {
-	out := cdHeader.Render("obmr cd — pick a module directory") + "\n\n"
+	out := cdHeader.Render("obflow cd — pick a module directory") + "\n\n"
 	for i, it := range m.items {
 		cursor := "  "
 		row := cdStage.Render(it.stage) + cdID.Render(it.id) + cdPath.Render(it.path)

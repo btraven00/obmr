@@ -6,7 +6,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/btraven00/obmr/internal/workspace"
+	"github.com/btraven00/obflow/internal/workspace"
 	"github.com/spf13/cobra"
 )
 

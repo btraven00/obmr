@@ -1,7 +1,7 @@
-site_name: obmr
+site_name: obflow
 site_description: omnibenchmark monorepo helper
-repo_url: https://github.com/btraven00/obmr
-repo_name: btraven00/obmr
+repo_url: https://github.com/btraven00/obflow
+repo_name: btraven00/obflow
 edit_uri: edit/main/docs/
 
 theme:

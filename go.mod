@@ -1,4 +1,4 @@
-module github.com/btraven00/obmr
+module github.com/btraven00/obflow
 
 go 1.24.0
 

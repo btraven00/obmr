@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btraven00/obmr/internal/config"
-	"github.com/btraven00/obmr/internal/workspace"
+	"github.com/btraven00/obflow/internal/config"
+	"github.com/btraven00/obflow/internal/workspace"
 )
 
 const (
@@ -79,7 +79,7 @@ func localYAMLPathFromCanonical(canonical string) string {
 	return filepath.Join(dir, name+".local"+filepath.Ext(base))
 }
 
-// loadLock resolves the lock file at <bench-dir>/.obmr.lock and returns it
+// loadLock resolves the lock file at <bench-dir>/.obflow.lock and returns it
 // plus the absolute benchmark dir.
 func loadLock(yamlPath string) (*workspace.Lock, string, error) {
 	benchDir, err := filepath.Abs(filepath.Dir(yamlPath))
@@ -89,7 +89,7 @@ func loadLock(yamlPath string) (*workspace.Lock, string, error) {
 	lockPath := workspace.LockPath(yamlPath)
 	lock, err := workspace.LoadLock(lockPath)
 	if err != nil {
-		return nil, "", fmt.Errorf("load %s: %w (run `obmr init` first?)", lockPath, err)
+		return nil, "", fmt.Errorf("load %s: %w (run `obflow init` first?)", lockPath, err)
 	}
 	return lock, benchDir, nil
 }

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/btraven00/obmr/internal/benchmark"
-	"github.com/btraven00/obmr/internal/config"
-	"github.com/btraven00/obmr/internal/runner"
+	"github.com/btraven00/obflow/internal/benchmark"
+	"github.com/btraven00/obflow/internal/config"
+	"github.com/btraven00/obflow/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -23,12 +23,12 @@ func newRunCmd() *cobra.Command {
 By default (dev mode), passes --dirty to ob so it uses your local clones.
 Use --prod to run without --dirty (upstream-pinned).
 
-If the benchmark's top-level software_backend is "conda", obmr generates
-a pixi manifest at .obmr/pixi.toml (with python + conda + omnibenchmark)
+If the benchmark's top-level software_backend is "conda", obflow generates
+a pixi manifest at .obflow/pixi.toml (with python + conda + omnibenchmark)
 and runs via ` + "`pixi run`" + `. Otherwise it runs via ` + "`uv tool run`" + `.
 
 The omnibenchmark version is resolved from config (priority: pr > branch
-> version > latest pypi). See ` + "`obmr config`" + `.
+> version > latest pypi). See ` + "`obflow config`" + `.
 
 Extra arguments after -- are passed through to snakemake (via ob run).`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -40,7 +40,7 @@ Extra arguments after -- are passed through to snakemake (via ob run).`,
 			if !prod {
 				local := localYAMLPathFromCanonical(plan)
 				if _, err := os.Stat(local); err != nil {
-					return fmt.Errorf("%s not found (run `obmr dev` first, or pass --prod)", local)
+					return fmt.Errorf("%s not found (run `obflow dev` first, or pass --prod)", local)
 				}
 				yamlPath = local
 			}
@@ -105,7 +105,7 @@ func extractBoolFlag(args []string, flag string) (bool, []string) {
 
 // dispatchOb runs `ob <subArgs...>` via uv (default) or pixi (when the
 // plan's software_backend is "conda"), using the configured omnibenchmark
-// spec from .obmr/config.yaml.
+// spec from .obflow/config.yaml.
 func dispatchOb(plan string, subArgs []string) error {
 	cwd, _ := os.Getwd()
 	cp := config.Find(cwd)
@@ -205,7 +205,7 @@ func printOmniBanner(o config.Omnibenchmark, conda bool) {
 	if unsetKey != "" {
 		fmt.Fprintf(os.Stderr, "    %s revert with `%s`\n",
 			paint("hint:", ansiDim),
-			paint("obmr config --unset "+unsetKey, ansiBold))
+			paint("obflow config --unset "+unsetKey, ansiBold))
 	}
 }
 

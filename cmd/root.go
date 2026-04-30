@@ -10,9 +10,9 @@ const (
 
 func Root() *cobra.Command {
 	root := &cobra.Command{
-		Use:           "obmr",
+		Use:           "obflow",
 		Short:         "omnibenchmark monorepo helper",
-		Long:          "obmr manages an omnibenchmark and its module repos as a workspace of sibling clones.",
+		Long:          "obflow manages an omnibenchmark and its module repos as a workspace of sibling clones.",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

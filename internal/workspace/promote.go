@@ -16,7 +16,7 @@ import (
 func Promote(canonicalYAML string, lock *Lock) error {
 	localPath := localOutputPath(canonicalYAML)
 	if _, err := os.Stat(localPath); err != nil {
-		return fmt.Errorf("no local YAML at %s (run `obmr dev` first)", localPath)
+		return fmt.Errorf("no local YAML at %s (run `obflow dev` first)", localPath)
 	}
 
 	// Capture canonical url -> commit so we can restore SHAs.

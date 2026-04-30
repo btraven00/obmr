@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/btraven00/obmr/internal/workspace"
+	"github.com/btraven00/obflow/internal/workspace"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -54,7 +54,7 @@ func newStatusCmd() *cobra.Command {
 					fmt.Printf("local: %s  %s\n", paint("edited", ansiMagenta+ansiBold), paint(d.Summary(), ansiDim))
 					printDiffDetails(d)
 					fmt.Printf("       %s use `%s` to apply edits to the canonical plan\n",
-						paint("hint:", ansiDim), paint("obmr plan promote", ansiBold))
+						paint("hint:", ansiDim), paint("obflow plan promote", ansiBold))
 				}
 			}
 			results := workspace.Fanout(benchDir, lock, func(dir string, _ workspace.LockedModule) (string, error) {

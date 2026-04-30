@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btraven00/obmr/internal/benchmark"
-	"github.com/btraven00/obmr/internal/workspace"
+	"github.com/btraven00/obflow/internal/benchmark"
+	"github.com/btraven00/obflow/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +15,7 @@ func newNewModuleCmd() *cobra.Command {
 		Use:   "newmodule <name> [-- ob-args...]",
 		Short: "Create a new module under the modules parent dir via `ob create module`",
 		Long: `Wraps ` + "`ob create module <path>`" + `, placing the new module under the
-parent directory recorded in .obmr.lock (typically ../<bench>-modules/).
+parent directory recorded in .obflow.lock (typically ../<bench>-modules/).
 
 Refuses if a module with the same id already exists in the plan YAML.
 

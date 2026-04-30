@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/btraven00/obmr/internal/workspace"
+	"github.com/btraven00/obflow/internal/workspace"
 	"github.com/spf13/cobra"
 )
 
@@ -12,7 +12,7 @@ func newInitCmd() *cobra.Command {
 	var parent string
 	c := &cobra.Command{
 		Use:   "init [bench.yaml]",
-		Short: "Clone all modules as siblings and write .obmr.lock",
+		Short: "Clone all modules as siblings and write .obflow.lock",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			yamlPath, err := resolvePlan(firstArg(args))

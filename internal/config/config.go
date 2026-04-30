@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DirName  = ".obmr"
+	DirName  = ".obflow"
 	FileName = "config.yaml"
 )
 
@@ -23,7 +23,7 @@ type Default struct {
 	Plan string `yaml:"plan"`
 }
 
-// Omnibenchmark specifies which `omnibenchmark` package `obmr run` invokes.
+// Omnibenchmark specifies which `omnibenchmark` package `obflow run` invokes.
 // Resolution priority: pr > branch > version > latest pypi.
 type Omnibenchmark struct {
 	Version string `yaml:"version,omitempty"` // e.g. "1.2.3"
@@ -35,7 +35,7 @@ type Omnibenchmark struct {
 // source (when branch or PR is set).
 const UpstreamRepo = "https://github.com/omnibenchmark/omnibenchmark.git"
 
-// Find walks up from start looking for .obmr/config.yaml. Returns the path
+// Find walks up from start looking for .obflow/config.yaml. Returns the path
 // to the config file, or "" if none found.
 func Find(start string) string {
 	dir, err := filepath.Abs(start)
@@ -71,7 +71,7 @@ func Load(path string) (*Config, error) {
 	return &c, nil
 }
 
-// Save writes c to <baseDir>/.obmr/config.yaml, creating the dir as needed.
+// Save writes c to <baseDir>/.obflow/config.yaml, creating the dir as needed.
 func Save(baseDir string, c *Config) (string, error) {
 	dir := filepath.Join(baseDir, DirName)
 	if err := os.MkdirAll(dir, 0755); err != nil {
@@ -112,4 +112,4 @@ func ResolvePlan(cwd string) (string, error) {
 	return plan, nil
 }
 
-var ErrNoPlan = errors.New("no plan: pass <bench.yaml> or run `obmr use <plan>` first")
+var ErrNoPlan = errors.New("no plan: pass <bench.yaml> or run `obflow use <plan>` first")

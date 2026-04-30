@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/btraven00/obmr/internal/benchmark"
+	"github.com/btraven00/obflow/internal/benchmark"
 )
 
 // Resolved is the result of resolving a target module's inputs against

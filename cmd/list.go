@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/btraven00/obmr/internal/benchmark"
+	"github.com/btraven00/obflow/internal/benchmark"
 	"github.com/spf13/cobra"
 )
 

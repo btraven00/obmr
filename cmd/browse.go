@@ -40,7 +40,7 @@ func newBrowseCmd() *cobra.Command {
 		Short: "Hierarchical directory browser (default root: <bench>/out); prints chosen path",
 		Long: `Walk a directory tree under the current benchmark with arrow keys and pick a
 folder to print on stdout. Defaults to <bench-root>/out; pass a subdir name to
-start there instead (e.g. ` + "`obmr browse out/one-data`" + `, or any path under
+start there instead (e.g. ` + "`obflow browse out/one-data`" + `, or any path under
 the bench root).
 
 Keys:
@@ -53,7 +53,7 @@ Keys:
 The chosen absolute path is printed on stdout; the TUI runs on stderr, so the
 ` + "`ocd`" + ` shell wrapper works for this too:
 
-  ocd "$(obmr browse)"
+  ocd "$(obflow browse)"
 `,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
@@ -88,7 +88,7 @@ The chosen absolute path is printed on stdout; the TUI runs on stderr, so the
 				return fmt.Errorf("%s is not a directory", start)
 			}
 
-			// `outd` runs `obmr browse` in $(...), so stdout is a pipe and
+			// `outd` runs `obflow browse` in $(...), so stdout is a pipe and
 			// lipgloss's default profile (sniffed from stdout) would strip
 			// all colors. Force it to detect from stderr — the TUI's
 			// real output.
@@ -372,7 +372,7 @@ func (m browseModel) View() string {
 	}
 	sep := " " + brCrumbS.Render("›") + " "
 	sepW := lipgloss.Width(sep)
-	headerText := brHeader.Render("obmr browse")
+	headerText := brHeader.Render("obflow browse")
 	headerW := lipgloss.Width(headerText)
 	indent := strings.Repeat(" ", headerW+2)
 	line := headerText + "  "

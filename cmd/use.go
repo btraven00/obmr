@@ -5,14 +5,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btraven00/obmr/internal/config"
+	"github.com/btraven00/obflow/internal/config"
 	"github.com/spf13/cobra"
 )
 
 func newUseCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "use <bench.yaml>",
-		Short: "Set the default benchmark plan in ./.obmr/config.yaml",
+		Short: "Set the default benchmark plan in ./.obflow/config.yaml",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			abs, err := filepath.Abs(args[0])

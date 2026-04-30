@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/btraven00/obmr/internal/workspace"
+	"github.com/btraven00/obflow/internal/workspace"
 	"github.com/spf13/cobra"
 )
 

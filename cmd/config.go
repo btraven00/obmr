@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/btraven00/obmr/internal/config"
+	"github.com/btraven00/obflow/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ func newConfigCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "config [key] [value]",
 		Short: "Get or set a config value (git-config style)",
-		Long: `Read or write a single key in ./.obmr/config.yaml.
+		Long: `Read or write a single key in ./.obflow/config.yaml.
 
 Supported keys:
   default.plan
@@ -25,10 +25,10 @@ Supported keys:
   omnibenchmark.pr
 
 Examples:
-  obmr config                                # list all
-  obmr config omnibenchmark.branch           # print value
-  obmr config omnibenchmark.branch dev       # set value
-  obmr config --unset omnibenchmark.branch   # clear`,
+  obflow config                                # list all
+  obflow config omnibenchmark.branch           # print value
+  obflow config omnibenchmark.branch dev       # set value
+  obflow config --unset omnibenchmark.branch   # clear`,
 		Args: cobra.MaximumNArgs(2),
 		RunE: func(_ *cobra.Command, args []string) error {
 			cwd, err := os.Getwd()

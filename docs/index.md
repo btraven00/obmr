@@ -1,4 +1,4 @@
-# obmr
+# obflow
 
 A small CLI for managing an [omnibenchmark](https://github.com/omnibenchmark/omnibenchmark)
 and its module repos as a workspace of sibling clones — driven by the

@@ -10,7 +10,7 @@ import (
 )
 
 // LocalDiff summarizes how the on-disk <bench>.local.yaml diverges from
-// what `obmr dev` would have produced from the current canonical + lock.
+// what `obflow dev` would have produced from the current canonical + lock.
 // Anything beyond the rewritten repository.url / repository.commit fields
 // counts as user edits.
 type LocalDiff struct {
@@ -57,7 +57,7 @@ func DiffLocal(canonicalYAML string, lock *Lock) (*LocalDiff, error) {
 	return d, nil
 }
 
-// renderExpectedLocal returns the byte content `obmr dev` would write
+// renderExpectedLocal returns the byte content `obflow dev` would write
 // right now (without touching disk). Mirrors WriteLocalYAML: rewrites
 // both repository.url and repository.commit per module.
 func renderExpectedLocal(canonicalYAML string, lock *Lock) ([]byte, error) {

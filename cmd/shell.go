@@ -10,31 +10,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const shellBlockBegin = "# >>> obmr shell integration >>>"
-const shellBlockEnd = "# <<< obmr shell integration <<<"
+const shellBlockBegin = "# >>> obflow shell integration >>>"
+const shellBlockEnd = "# <<< obflow shell integration <<<"
 
-func obmrShellSnippet(shell string) string {
+func obflowShellSnippet(shell string) string {
 	// Same body for bash and zsh — POSIX-compatible.
 	body := `ocd() {
   local d
-  d=$(obmr cd "$@") || return $?
+  d=$(obflow cd "$@") || return $?
   [ -n "$d" ] && cd "$d"
 }
 outd() {
   local d
-  d=$(obmr browse "$@") || return $?
+  d=$(obflow browse "$@") || return $?
   [ -n "$d" ] && cd "$d"
 }`
 	completion := ""
 	switch shell {
 	case "zsh":
-		completion = `if command -v obmr >/dev/null 2>&1; then
-  source <(obmr completion zsh)
-  compdef _obmr obmr
+		completion = `if command -v obflow >/dev/null 2>&1; then
+  source <(obflow completion zsh)
+  compdef _obflow obflow
 fi`
 	case "bash":
-		completion = `if command -v obmr >/dev/null 2>&1; then
-  source <(obmr completion bash)
+		completion = `if command -v obflow >/dev/null 2>&1; then
+  source <(obflow completion bash)
 fi`
 	}
 	return shellBlockBegin + "\n" + body + "\n" + completion + "\n" + shellBlockEnd + "\n"
@@ -70,12 +70,12 @@ func newShellInitCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "shell-init",
 		Short: "Print shell integration (ocd wrapper + completion) to stdout",
-		Long: `Print the shell snippet that defines the ` + "`ocd`" + ` wrapper for ` + "`obmr cd`" + `
-and enables tab completion. Source it manually, or run ` + "`obmr shell-install`" + `
+		Long: `Print the shell snippet that defines the ` + "`ocd`" + ` wrapper for ` + "`obflow cd`" + `
+and enables tab completion. Source it manually, or run ` + "`obflow shell-install`" + `
 to write it to your rc file.
 
   # one-shot eval (current session)
-  eval "$(obmr shell-init)"
+  eval "$(obflow shell-init)"
 `,
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
@@ -83,7 +83,7 @@ to write it to your rc file.
 			if s == "" {
 				s = detectShell()
 			}
-			fmt.Print(obmrShellSnippet(s))
+			fmt.Print(obflowShellSnippet(s))
 			return nil
 		},
 	}
@@ -98,7 +98,7 @@ func newShellInstallCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "shell-install",
 		Short: "Append the shell integration block to your rc file (idempotent)",
-		Long: `Write the obmr shell integration block to your rc file. The block is
+		Long: `Write the obflow shell integration block to your rc file. The block is
 delimited by markers, so re-running this command replaces the existing
 block in place rather than appending duplicates.`,
 		Args: cobra.NoArgs,
@@ -116,7 +116,7 @@ block in place rather than appending duplicates.`,
 				path = p
 			}
 
-			snippet := obmrShellSnippet(s)
+			snippet := obflowShellSnippet(s)
 
 			var existing []byte
 			if b, err := os.ReadFile(path); err == nil {
@@ -155,7 +155,7 @@ block in place rather than appending duplicates.`,
 	return c
 }
 
-// replaceBlock replaces the existing obmr block (if any) in src with newBlock.
+// replaceBlock replaces the existing obflow block (if any) in src with newBlock.
 // Returns the new buffer and whether a replacement happened.
 func replaceBlock(src []byte, newBlock string) ([]byte, bool) {
 	s := string(src)

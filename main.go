@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/btraven00/obmr/cmd"
+	"github.com/btraven00/obflow/cmd"
 )
 
 func main() {
