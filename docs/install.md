@@ -14,6 +14,17 @@ cd obflow
 go build -o obflow .
 ```
 
+## obrun
+
+A minimal companion CLI exposing just `run` and `use`:
+
+```sh
+go build -o obrun ./obrun
+```
+
+It shares `./.obflow/config.yaml` with `obflow`, so `obrun use` and
+`obflow use` are interchangeable.
+
 ## Runtime dependencies
 
 Required at runtime, not at build time:

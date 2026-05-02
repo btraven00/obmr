@@ -1,4 +1,4 @@
-/obmr
+/obflow
 *.local.yaml
 .obmr.lock
 .obmr/

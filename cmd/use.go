@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newUseCmd() *cobra.Command {
+func NewUseCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "use <bench.yaml>",
 		Short: "Set the default benchmark plan in ./.obflow/config.yaml",

@@ -14,6 +14,17 @@ import (
 )
 
 func NewRunCmd() *cobra.Command {
+	return newRunCmdWithDev(true)
+}
+
+// NewRunCmdProd returns a `run` command that always runs against the
+// canonical plan (no --dirty, no --prod flag). Used by obrun, which has
+// no notion of dev mode.
+func NewRunCmdProd() *cobra.Command {
+	return newRunCmdWithDev(false)
+}
+
+func newRunCmdWithDev(devMode bool) *cobra.Command {
 	var prod bool
 	c := &cobra.Command{
 		Use:   "run [-- snakemake-args...]",
@@ -36,8 +47,9 @@ Extra arguments after -- are passed through to snakemake (via ob run).`,
 			if err != nil {
 				return err
 			}
+			effectiveProd := prod || !devMode
 			yamlPath := plan
-			if !prod {
+			if !effectiveProd {
 				local := localYAMLPathFromCanonical(plan)
 				if _, err := os.Stat(local); err != nil {
 					return fmt.Errorf("%s not found (run `obflow dev` first, or pass --prod)", local)
@@ -57,7 +69,7 @@ Extra arguments after -- are passed through to snakemake (via ob run).`,
 			coresVal, passThrough := extractFlag(passThrough, "--cores")
 			unpinned, passThrough := extractBoolFlag(passThrough, "--unpinned")
 			subArgs := []string{"run"}
-			if !prod {
+			if !effectiveProd {
 				subArgs = append(subArgs, "--dirty")
 			}
 			subArgs = append(subArgs, yamlPath)
@@ -74,7 +86,9 @@ Extra arguments after -- are passed through to snakemake (via ob run).`,
 			return dispatchOb(plan, subArgs)
 		},
 	}
-	c.Flags().BoolVar(&prod, "prod", false, "run without --dirty (upstream-pinned mode)")
+	if devMode {
+		c.Flags().BoolVar(&prod, "prod", false, "run without --dirty (upstream-pinned mode)")
+	}
 	return c
 }
 

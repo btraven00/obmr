@@ -22,7 +22,7 @@ func Root() *cobra.Command {
 		&cobra.Group{ID: groupBench, Title: "Benchmarker actions:"},
 	)
 
-	use := newUseCmd()
+	use := NewUseCmd()
 	initC := newInitCmd()
 	status := newStatusCmd()
 	runC := NewRunCmd()
