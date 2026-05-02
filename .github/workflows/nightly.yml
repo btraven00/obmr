@@ -1,0 +1,114 @@
+name: Nightly Release
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC every day
+  workflow_dispatch:
+
+env:
+  GO_VERSION: "1.24.0"
+
+jobs:
+  build:
+    name: Build ${{ matrix.binary }} (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        binary: [obflow, obrun]
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.binary }}" = "obrun" ]; then
+            PKG="./obrun"
+          else
+            PKG="."
+          fi
+          go build \
+            -trimpath \
+            -ldflags="-s -w" \
+            -o "dist/${{ matrix.binary }}-${GOOS}-${GOARCH}" \
+            "$PKG"
+
+      - name: Archive
+        run: |
+          cd dist
+          tar -czf "${{ matrix.binary }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz" \
+            "${{ matrix.binary }}-${{ matrix.goos }}-${{ matrix.goarch }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary }}-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ matrix.binary }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish nightly release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Compute build metadata
+        id: meta
+        run: |
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Delete previous nightly release
+        run: gh release delete nightly --yes --cleanup-tag 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish nightly release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: "Nightly ${{ steps.meta.outputs.date }}"
+          prerelease: true
+          make_latest: false
+          generate_release_notes: false
+          files: dist/*
+          body: |
+            Automated nightly build from `main`.
+
+            **Commit:** ${{ github.sha }} (`${{ steps.meta.outputs.sha }}`)
+            **Built:** ${{ steps.meta.outputs.date }}
+
+            ### Install
+
+            **Linux / macOS**
+            ```bash
+            # replace <bin> with obflow or obrun, <os> with linux or darwin, <arch> with amd64 or arm64
+            curl -L https://github.com/btraven00/obflow/releases/download/nightly/<bin>-<os>-<arch>.tar.gz \
+              | tar -xz
+            chmod +x <bin>-<os>-<arch>
+            sudo mv <bin>-<os>-<arch> /usr/local/bin/<bin>
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
