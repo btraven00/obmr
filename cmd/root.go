@@ -25,7 +25,7 @@ func Root() *cobra.Command {
 	use := newUseCmd()
 	initC := newInitCmd()
 	status := newStatusCmd()
-	runC := newRunCmd()
+	runC := NewRunCmd()
 	dev := newDevCmd()
 	list := newListCmd()
 	cdC := newCdCmd()

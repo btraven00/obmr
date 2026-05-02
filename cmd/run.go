@@ -13,7 +13,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newRunCmd() *cobra.Command {
+func NewRunCmd() *cobra.Command {
 	var prod bool
 	c := &cobra.Command{
 		Use:   "run [-- snakemake-args...]",
